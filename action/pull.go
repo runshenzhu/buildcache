@@ -12,6 +12,7 @@ import (
 	"strings"
 	"net/http"
 	"errors"
+	"os"
 )
 
 var (
@@ -20,7 +21,7 @@ var (
 
 func Pull(imageName, registryAddr string) error {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.10"}
-	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.24", nil, defaultHeaders)
+	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.23", nil, defaultHeaders)
 	if err != nil {
 		panic(err)
 	}
@@ -56,15 +57,24 @@ func pull(imageName, registryAddr string, cli *client.Client) error {
 		logrus.Debugln("pull:", imageName, m)
 	}
 
-	if parent, err := getParent(imageName, registryAddr); err == nil {
-		logrus.Debugln("parent:", parent)
-		pull(parent, registryAddr, cli)
+	if parentID, err := getParent(imageName, registryAddr); err == nil {
+		logrus.Debugln("parent:", parentID)
+		if err = pull(registryAddr + "/" + parentID, registryAddr, cli); err == nil {
+			childInfo, _, err := cli.ImageInspectWithRaw(context.Background(), imageName, false)
+
+			if err != nil {
+				logrus.Debugln("inspect on child image gets error:", err)
+				return nil
+			}
+			setParent(childInfo.ID[len("sha256:"):], parentID)
+		}
 	} else {
 		logrus.Warnln("get parent fail:", err)
 	}
 	return nil
 }
 
+// query registry to get parent info of a image
 func getParent(imageName, registryAddr string) (string, error) {
 	// parse image base name, tag
 	ref, tag, _ := reference.Parse(imageName)
@@ -126,12 +136,49 @@ func getParent(imageName, registryAddr string) (string, error) {
 			return "", ErrParse
 		}
 
-		parentBaseString, _ := parentBase.(string)
-		if parentBaseString == "" {
+		parentID, _ := parentBase.(string)
+		if parentID == "" {
 			return "", ErrParse
 		}
-
-		parent := fmt.Sprintf("%v/%v", registryAddr, parentBase)
-		return parent, nil
+		return parentID, nil
 	}
+}
+
+const METAPATH = "/var/lib/docker/image/aufs/imagedb/metadata/sha256/"
+
+// set parent relationship among child and parent image
+func setParent(child, parent string) error {
+	logrus.Debugln("child:", child, "parent:", parent)
+	path := METAPATH + child
+	logrus.Debugln("path:", path)
+
+	// if parent meta already exit, do nothing
+	//if exit, err := isParentMetaExist(path); exit {
+	//	// fixme: fix op not permitted error
+	//	if err != nil {
+	//		logrus.Warnln("check exit get error:", err)
+	//	}
+	//	return nil
+	//}
+
+	// set relationship
+	// fixme: perm mode may not be correct
+	os.Mkdir(path, 0777)
+	fd, err := os.Create(path + "/parent")
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	fd.WriteString(parent)
+	return nil
+}
+
+// check if image(childID) has meta data of parent
+func isParentMetaExist(path string) (bool, error) {
+
+	_, err := os.Stat(path)
+	if err == nil { return true, nil }
+	if os.IsNotExist(err) { return false, nil }
+	return true, err
 }

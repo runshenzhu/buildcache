@@ -14,7 +14,7 @@ import (
 
 func Push(imageName, registryAddr string) error {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.10"}
-	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.24", nil, defaultHeaders)
+	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.23", nil, defaultHeaders)
 	if err != nil {
 		panic(err)
 	}
