@@ -1,7 +1,7 @@
 package main
 
 import (
-	"./buildcache"
+	"buildcache/action"
 	"fmt"
 	"os"
 
@@ -51,6 +51,8 @@ var (
 
 			if pushImage != "" {
 				return buildcache.Push(pushImage, registryAddr)
+			} else if pullImage != "" {
+				return buildcache.Pull(pullImage, registryAddr)
 			}
 
 			return nil

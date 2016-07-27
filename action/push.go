@@ -61,7 +61,6 @@ func push(imageName, registryAddr string, cli *client.Client) error {
 				}
 				return err
 			}
-			logrus.Debugln("push progress", m)
 		}
 		// if the final stream object contained an error, return it
 		if errMsg, ok := m["error"]; ok {
