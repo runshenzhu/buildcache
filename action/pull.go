@@ -27,6 +27,13 @@ func Pull(imageName, registryAddr string) error {
 	}
 
 	imageIDs, err := pull(imageName, registryAddr, cli)
+	info, _, err := cli.ImageInspectWithRaw(context.Background(), imageName, false)
+	if err != nil {
+		logrus.Debugln("inspect on child image gets error:", err)
+		panic(err)
+	}
+	id := info.ID[len("sha256:"):]
+	imageIDs = append(imageIDs, id)
 	if err != nil {
 		return err
 	} else {
@@ -72,14 +79,12 @@ func pull(imageName, registryAddr string, cli *client.Client) ([]string ,error) 
 		logrus.Debugln("parent:", parentID)
 		imageIDs ,err := pull(registryAddr + "/" + parentID, registryAddr, cli) 
 		if err == nil {
-			imageIDs = append(imageIDs, childID)
+			imageIDs = append(imageIDs, parentID)
 			setParent(childID, parentID)			
 		} 
 		return imageIDs, nil;
 	} else {
-		imageIDs := []string{childID}
-		logrus.Warnln("get parent fail:", err)
-		return imageIDs, nil
+		return nil, err
 	}
 }
 
