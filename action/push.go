@@ -32,6 +32,7 @@ func Push(imageName, registryAddr string) error {
 func push(imageName, registryAddr string, cli *client.Client) error {
 	ctx := context.Background()
 	var err = error(nil)
+	auth, _ := EncodeAuthToBase64()
 	for{
 		if err != nil {
 			logrus.Errorln("push image gets error: ", err)
@@ -52,8 +53,7 @@ func push(imageName, registryAddr string, cli *client.Client) error {
 		}
 
 		// first push itself
-		// fixme: set RegistryAuth to correct value
-		if rc, err := cli.ImagePush(ctx, imageName, types.ImagePushOptions{RegistryAuth: "123"}); err == nil {
+		if rc, err := cli.ImagePush(ctx, imageName, types.ImagePushOptions{RegistryAuth: auth}); err == nil {
 			dec := json.NewDecoder(rc)
 			m := map[string]interface{}{}
 			for {

@@ -35,6 +35,7 @@ var (
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			registryAddr, err := cmd.Flags().GetString("registry-addr")
+
 			if err != nil {
 				return err
 			}

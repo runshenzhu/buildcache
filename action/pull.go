@@ -9,7 +9,7 @@ import (
 	"github.com/docker/engine-api/types"
 	"golang.org/x/net/context"
 	"github.com/docker/engine-api/types/reference"
-	"strings"
+	//"strings"
 	"net/http"
 	"errors"
 	"os"
@@ -38,9 +38,9 @@ func pull(imageName, registryAddr string, cli *client.Client) ([]string ,error) 
 	ctx := context.Background()
 	imageIDs := []string{}
 	// first pull itself
-	// fixme: set RegistryAuth to correct value
+	auth, _ := EncodeAuthToBase64()
 	for{
-		if rc, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{RegistryAuth: "123"}); err == nil {
+		if rc, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{RegistryAuth: auth}); err == nil {
 			dec := json.NewDecoder(rc)
 			m := map[string]interface{}{}
 			for {
@@ -86,19 +86,22 @@ func pull(imageName, registryAddr string, cli *client.Client) ([]string ,error) 
 func getParent(imageName, registryAddr string) (string, error) {
 	// parse image base name, tag
 	ref, tag, _ := reference.Parse(imageName)
-	if strings.HasPrefix(ref, registryAddr) {
-		ref = imageName[len(registryAddr) + 1 : len(ref)]
-	}
+	token, _ := getToken(ref)
 
 	// construct get url
-	url := "http://" + registryAddr + "/v2/" + ref + "/manifests/" + tag
+	url := "https://registry-1.docker.io/v2/" + ref + "/manifests/" + tag
 	logrus.Debugln("get url:", url)
 
-	resp, err := http.Get(url)
+	client := http.Client{}
+
+	request, _ := http.NewRequest("GET", url, nil)
+	request.Header.Set("Authorization", "Bearer " + token)
+	resp, err := client.Do(request)
 	if err != nil {
 		// handle error
 		return "", err
 	}
+	logrus.Debugln("get parent, resp", resp)
 	rc := resp.Body
 	defer rc.Close()
 
