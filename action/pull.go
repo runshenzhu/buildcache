@@ -27,64 +27,58 @@ func Pull(imageName, registryAddr string) error {
 	}
 
 	imageIDs, err := pull(imageName, registryAddr, cli)
-	info, _, err := cli.ImageInspectWithRaw(context.Background(), imageName, false)
-	if err != nil {
-		logrus.Debugln("inspect on child image gets error:", err)
-		panic(err)
-	}
-	id := info.ID[len("sha256:"):]
-	imageIDs = append(imageIDs, id)
-	if err != nil {
-		return err
-	} else {
+	if err == nil {
 		return restore(imageIDs, cli)
+	} else {
+		return err
 	}
 }
 
 func pull(imageName, registryAddr string, cli *client.Client) ([]string ,error) {
 	ctx := context.Background()
-
+	imageIDs := []string{}
 	// first pull itself
 	// fixme: set RegistryAuth to correct value
-	if rc, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{RegistryAuth: "123"}); err != nil {
-		logrus.Errorln("push image gets error: ", err)
-		return nil, err
-	} else {
-		dec := json.NewDecoder(rc)
-		m := map[string]interface{}{}
-		for {
-			if err := dec.Decode(&m); err != nil {
-				if err == io.EOF {
-					break
+	for{
+		if rc, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{RegistryAuth: "123"}); err == nil {
+			dec := json.NewDecoder(rc)
+			m := map[string]interface{}{}
+			for {
+				if err := dec.Decode(&m); err != nil {
+					if err == io.EOF {
+						break
+					}
+					return nil, err
 				}
-				return nil, err
 			}
-		}
-		// if the final stream object contained an error, return nil, it
-		if errMsg, ok := m["error"]; ok {
-			logrus.Warnln("pull error:", errMsg)
-			return nil, fmt.Errorf("%v", errMsg)
+			// if the final stream object contained an error, return nil, it
+			if errMsg, ok := m["error"]; ok {
+				logrus.Warnln("pull error:", errMsg)
+				return imageIDs, nil
+			}
+
+			logrus.Debugln("pull:", imageName, m)
+		} else {
+			logrus.Errorln("push image gets error: ", err)
+			return nil, err
 		}
 
-		logrus.Debugln("pull:", imageName, m)
-	}
-
-	childInfo, _, err := cli.ImageInspectWithRaw(context.Background(), imageName, false)
-	if err != nil {
-		logrus.Debugln("inspect on child image gets error:", err)
-		panic(err)
-	}
-	childID := childInfo.ID[len("sha256:"):]
-	if parentID, err := getParent(imageName, registryAddr); err == nil {
-		logrus.Debugln("parent:", parentID)
-		imageIDs ,err := pull(registryAddr + "/" + parentID, registryAddr, cli) 
-		if err == nil {
-			imageIDs = append(imageIDs, parentID)
-			setParent(childID, parentID)			
-		} 
-		return imageIDs, nil;
-	} else {
-		return nil, err
+		childInfo, _, err := cli.ImageInspectWithRaw(context.Background(), imageName, false)
+		if err != nil {
+			logrus.Debugln("inspect on child image gets error:", err)
+			panic(err)
+		}
+		childID := childInfo.ID[len("sha256:"):]
+		imageIDs = append(imageIDs, childID)
+		if parentID, err := getParent(imageName, registryAddr); err == nil {
+			logrus.Debugln("parent:", parentID)
+			imageName = registryAddr + "/" + parentID
+			if err == nil {
+				setParent(childID, parentID)			
+			} 
+		} else {
+			return nil, err
+		}
 	}
 }
 
@@ -198,6 +192,7 @@ func isParentMetaExist(path string) (bool, error) {
 }
 
 func restore(imageSet []string, cli *client.Client) error {
+	logrus.Println(imageSet)
 	rc, err := cli.ImageSave(context.Background(), imageSet)
 	if err != nil {
 		return err
