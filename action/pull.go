@@ -53,7 +53,7 @@ func pull(imageName, registryAddr string, cli *client.Client) ([]string ,error) 
 			}
 			// if the final stream object contained an error, return nil, it
 			if errMsg, ok := m["error"]; ok {
-				logrus.Warnln("pull error:", errMsg)
+				logrus.Debugln("pull error:", errMsg)
 				return imageIDs, nil
 			}
 
@@ -195,7 +195,7 @@ func isParentMetaExist(path string) (bool, error) {
 }
 
 func restore(imageSet []string, cli *client.Client) error {
-	logrus.Println(imageSet)
+	logrus.Debugln(imageSet)
 	rc, err := cli.ImageSave(context.Background(), imageSet)
 	if err != nil {
 		return err
