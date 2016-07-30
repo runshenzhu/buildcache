@@ -1,7 +1,8 @@
 # buildcache
 make docker build great again
 
-alias dockergreat="docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker/:/var/lib/docker/ -v $HOME/.docker/config.json:/credentials.json runshenzhujm/buildcache:latest"
+`$ alias dockergreat="docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker/:/var/lib/docker/ -v $HOME/.docker/config.json:/credentials.json runshenzhujm/buildcache:latest"`
 
-dockergreat --push <reponame> --registry-addr <registry>
-dockergreat --pull <reponame> --registry-addr <registry>
+`dockergreat --push <reponame> --registry-addr <registry>`
+
+`dockergreat --pull <reponame> --registry-addr <registry>`
