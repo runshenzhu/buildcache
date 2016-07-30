@@ -85,6 +85,7 @@ func push(imageName, registryAddr string, cli *client.Client) error {
 		if parent == "" {
 			return nil
 		} 
+		logrus.Println("Push " + imageName + " successfully!")
 		imageName = parent
 	}
 }

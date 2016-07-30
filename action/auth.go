@@ -7,13 +7,26 @@ import (
 	"encoding/base64"
 	"net/http"
 	"io"
+	"io/ioutil"
 	"fmt"
+	"strings"
 )
 
 func EncodeAuthToBase64() (string, error) {
+	data, err := ioutil.ReadFile("/credentials.json")
+	if err != nil {
+		panic(err)
+	}
+	var content map[string]interface{}
+	err = json.Unmarshal([]byte(data), &content)	
+	content, _ = content["auths"].(map[string]interface{})
+	content, _ = content["https://index.docker.io/v1/"].(map[string]interface{})
+	encoded, _ := content["auth"].(string)
+	decoded, _ := base64.StdEncoding.DecodeString(encoded)
+	credentials := strings.Split(string(decoded), ":")
 	authConfig := types.AuthConfig{
-		Username: "runshenzhujm",
-		Password: "runshenzhujm",
+		Username: credentials[0],
+		Password: credentials[1],
 	}
 	buf, err := json.Marshal(authConfig)
 	if err != nil {
