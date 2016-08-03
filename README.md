@@ -7,7 +7,7 @@ Make Docker Build Great Again!
   * Docker : ```curl -fsSL https://get.docker.com/ | sh```
 
 ### .profile
-`alias dockergreat="docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker/:/var/lib/docker/ -v $HOME/.docker/config.json:/credentials.json runshenzhujm/buildcache:latest"`
+`alias dockergreat="sudo docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker/:/var/lib/docker/ -v $HOME/.docker/config.json:/credentials.json runshenzhujm/buildcache:latest"`
 ### Commands
 `dockergreat --push <registry/reponame> --registry-addr <registry>`
 
