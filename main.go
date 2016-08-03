@@ -62,7 +62,7 @@ var (
 )
 
 func init() {
-	mainCmd.Flags().String("registry-addr", "localhost:5000", "Address of docker registry, default is localhost:5000.")
+	mainCmd.Flags().StringP("registry-addr", "r", "localhost:5000", "Address of docker registry, default is localhost:5000.")
 	mainCmd.Flags().StringP("log-level", "l", "info", "Log level (options \"debug\", \"info\", \"warn\", \"error\", \"fatal\", \"panic\")")
 	mainCmd.Flags().String("push", "", "Push image with cache")
 	mainCmd.Flags().String("pull", "", "Pull image with cache")
